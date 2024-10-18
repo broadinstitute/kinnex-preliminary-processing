@@ -35,7 +35,26 @@ task pbSkerawQC {
     command <<<
         set -euxo pipefail
 
-@@ -58,364 +59,375 @@
+        echo "skera split initiated.."
+        echo ~{skera_id}
+
+        skera split -j ~{num_threads} ~{hifi_bam} ~{mas_adapters_fasta} ~{skera_id}.skera.bam
+        echo "Skera split completed!"
+
+        echo "Generating QC plots.."
+
+        python /usr/local/src/masseq_data_processing/pb_plots/plot_concat_hist.py \
+        --csv ~{skera_id}.skera.read_lengths.csv \
+        --arraysize ~{arraysize} \
+        --output ~{skera_id}.concat_hist.png
+
+        python /usr/local/src/masseq_data_processing/pb_plots/plot_readlen_hist.py \
+        --csv ~{skera_id}.skera.read_lengths.csv \
+        --arraysize ~{arraysize} \
+        --output ~{skera_id}.readlen_hist.png
+
+        python /usr/local/src/masseq_data_processing/pb_plots/plot_ligation_heatmap.py \
+        --csv ~{skera_id}.skera.ligations.csv \
         --arraysize ~{arraysize} \
         --output ~{skera_id}.ligations_heatmap.png
 
@@ -83,6 +102,7 @@ task pbLimaBulk {
         Int num_threads
         String gcs_output_dir
         #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+
         # Optional:
         Int? mem_gb
         Int? preemptible_attempts
@@ -165,6 +185,7 @@ task bulkMerge {
         Int num_threads
         String gcs_output_dir
         #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+
         # Optional:
         Int? mem_gb
         Int? preemptible_attempts
@@ -250,6 +271,7 @@ task pbSingleCell {
         Int num_threads
         String gcs_output_dir
         #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+
         # Optional:
         Int? mem_gb
         Int? preemptible_attempts
@@ -344,6 +366,7 @@ task pbGroupdedup {
         Int num_threads
         String gcs_output_dir
         #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+
         # Optional:
         Int? mem_gb
         Int? preemptible_attempts
