@@ -32,36 +32,12 @@ task pbSkerawQC {
     Int machine_mem = select_first([mem_gb,default_ram])
     String outdir = sub(sub( gcs_output_dir + "/", "/+", "/"), "gs:/", "gs://")
     String skera_id = if defined(sample_id) then sample_id else sub(basename(hifi_bam,".bam"),".hifi_reads","")
-    String skera_id_prefix = sub(skera_id, "\\..*", "")
     command <<<
         set -euxo pipefail
-        
-        echo "skera split initiated.."
-        echo ~{skera_id}
-        
-        skera split -j ~{num_threads} ~{hifi_bam} ~{mas_adapters_fasta} ~{skera_id}.skera.bam
-        echo "Skera split completed!"
 
-        echo "Generating QC plots.."
-
-        python /usr/local/src/masseq_data_processing/pb_plots/plot_concat_hist.py \
-        --csv ~{skera_id}.skera.read_lengths.csv \
-        --arraysize ~{arraysize} \
-        --output ~{skera_id}.concat_hist.png
-
-        python /usr/local/src/masseq_data_processing/pb_plots/plot_readlen_hist.py \
-        --csv ~{skera_id}.skera.read_lengths.csv \
-        --arraysize ~{arraysize} \
-        --output ~{skera_id}.readlen_hist.png
-
-        python /usr/local/src/masseq_data_processing/pb_plots/plot_ligation_heatmap.py \
-        --csv ~{skera_id}.skera.ligations.csv \
+@@ -58,364 +59,375 @@
         --arraysize ~{arraysize} \
         --output ~{skera_id}.ligations_heatmap.png
-
-        echo "Copying original HiFi bam to gcs path provided..."
-        gsutil -m cp ~{hifi_bam} ~{outdir}skera/
-        echo "Copying original HiFi bam completed!"
 
         echo "Copying output to gcs path provided..."
         gsutil -m cp ~{skera_id}.skera.* ~{outdir}skera/
@@ -69,13 +45,6 @@ task pbSkerawQC {
 
         echo "Copying plots to gcs path QC_plots..."
         gsutil -m cp ~{skera_id}*.png ~{outdir}QC_plots/
-        echo "Copying QC plots completed!"
-
-        echo "Copying QC metric and plots to gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}..."
-        gsutil -m cp ~{skera_id}.skera.* -x *.bam -x *.bai gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}/skera/
-        gsutil -m cp ~{skera_id}*.png gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}/QC_plots
-        echo "Copying QC metric and plots to gs://gptag/kinnex_data/ completed!"
-
         echo "Copying completed!"
     >>>
     # ------------------------------------------------
@@ -114,7 +83,6 @@ task pbLimaBulk {
         Int num_threads
         String gcs_output_dir
         #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-
         # Optional:
         Int? mem_gb
         Int? preemptible_attempts
@@ -136,7 +104,7 @@ task pbLimaBulk {
     String skera_id = if defined(sample_id) then sample_id else basename(skera_bam,".skera.bam")
     command <<<
         set -euxo pipefail
-        
+
         echo "Running lima demux.."
         ~{lima_cmd} -j ~{num_threads} ~{skera_bam} ~{bulk_barcodes_fasta} ~{skera_id}.lima.bam
         echo "Demuxing completed."
@@ -190,14 +158,13 @@ task bulkMerge {
         # Required:
         String refine_bampath
         String lima_dir
-        String? datasetId = "Replicates_merged" 
+        String? datasetId = "Replicates_merged"
         File barcode_to_sample
         File bulk_barcodes_fasta
-        Boolean mergeBams = false 
+        Boolean mergeBams = false
         Int num_threads
         String gcs_output_dir
         #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-
         # Optional:
         Int? mem_gb
         Int? preemptible_attempts
@@ -225,7 +192,7 @@ task bulkMerge {
         gsutil -m cp ~{refinedir}*refine.bam .
         echo "Fetching lima counts files.."
         gsutil -m cp ~{limadir}*lima.counts .
- 
+
         echo "plot counts and merge"
 
         python /usr/local/src/masseq_data_processing/pb_plots/mergeBams.py \
@@ -234,10 +201,10 @@ task bulkMerge {
             -limacountsdir . \
             -outdir . \
             -mergeReplicates \
-            -setTitleSamplePlot ~{datasetId} 
+            -setTitleSamplePlot ~{datasetId}
 
-        echo "Uploading merged bams to merge dir..."  
-        ls -lhrt  
+        echo "Uploading merged bams to merge dir..."
+        ls -lhrt
         gsutil -m cp ./merge/* ~{outdir}merge/
         gsutil cp readcounts_by_sample.png ~{outdir}merge/
         gsutil cp aggregated_lima_counts_by_sample.tsv ~{outdir}merge/
@@ -279,11 +246,10 @@ task pbSingleCell {
         File barcodes_list
         String read_design
         Boolean trimPolyA = true
-        Boolean clipAdapters = true 
+        Boolean clipAdapters = true
         Int num_threads
         String gcs_output_dir
         #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-
         # Optional:
         Int? mem_gb
         Int? preemptible_attempts
@@ -322,18 +288,18 @@ task pbSingleCell {
            a=`basename $i | awk -v FS='.5p--3p.bam' '{print $1}' | awk -v FS='.lima.' '{print $1}'`
            echo $a
            echo "tagging.."
-           isoseq tag --design ~{read_design} -j ~{num_threads} $i ./$a.tagged.bam 
+           isoseq tag --design ~{read_design} -j ~{num_threads} $i ./$a.tagged.bam
            echo "refining.."
            ~{isoseq_cmd} -j ~{num_threads} ./$a.tagged.bam ~{primer_fasta} ./$a.refine.bam
            echo "correcting.."
-           isoseq correct --barcodes ~{barcodes_list} -j ~{num_threads} ./$a.refine.bam ./$a.corrected.bam 
+           isoseq correct --barcodes ~{barcodes_list} -j ~{num_threads} ./$a.refine.bam ./$a.corrected.bam
            echo "Done for this id!"
         done
         echo "All completed."
 
         echo "Uploading tagged bams..."
         gsutil -m cp *.tagged* ~{outdir}tag/
-        echo "Copying extracted tagged reads completed!" 
+        echo "Copying extracted tagged reads completed!"
 
         echo "Uploading refined bams..."
         gsutil -m cp *.refine* ~{outdir}refine/
@@ -341,7 +307,7 @@ task pbSingleCell {
 
         echo "Uploading corrected bams..."
         gsutil -m cp *.corrected* ~{outdir}correct/
-        echo "Copying corrected reads completed!"  
+        echo "Copying corrected reads completed!"
 
     >>>
     # ------------------------------------------------
@@ -378,7 +344,6 @@ task pbGroupdedup {
         Int num_threads
         String gcs_output_dir
         #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-
         # Optional:
         Int? mem_gb
         Int? preemptible_attempts
@@ -394,7 +359,7 @@ task pbGroupdedup {
     Int default_boot_disk_size_gb = 50
 
     # Mem is in units of GB
-    Int machine_mem = select_first([mem_gb,default_ram]) 
+    Int machine_mem = select_first([mem_gb,default_ram])
     String outdir = sub(sub( gcs_output_dir + "/", "/+", "/"), "gs:/", "gs://")
     String isoseq_cmd = if keep_non_real_cells then "isoseq groupdedup --keep-non-real-cells" else "isoseq groupdedup"
 
@@ -407,7 +372,7 @@ task pbGroupdedup {
 
         echo "Uploading deduped bams..."
         gsutil -m cp *.dedup* ~{outdir}groupdedup/
-        echo "Copying extracted tagged reads completed!" 
+        echo "Copying extracted tagged reads completed!"
 
 
     >>>
@@ -415,7 +380,7 @@ task pbGroupdedup {
     # Outputs:
     output {
         # Default output file name:
-        String dedup_out = "~{outdir}groupdedup"        
+        String dedup_out = "~{outdir}groupdedup"
         File deduped_bam  =  "~{sample_id}.dedup.bam"
     }
 
