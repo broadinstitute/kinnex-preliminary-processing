@@ -10,6 +10,7 @@ task pbSkerawQC {
         # Required:
         File hifi_bam
         String? sample_id
+        String pdo
         File mas_adapters_fasta
         Int num_threads
         Int arraysize = 8
@@ -32,13 +33,12 @@ task pbSkerawQC {
     Int machine_mem = select_first([mem_gb,default_ram])
     String outdir = sub(sub( gcs_output_dir + "/", "/+", "/"), "gs:/", "gs://")
     String skera_id = if defined(sample_id) then sample_id else sub(basename(hifi_bam,".bam"),".hifi_reads","")
-    String skera_id_prefix = sub(skera_id, "\\..*", "")
+
     command <<<
         set -euxo pipefail
 
         echo "skera split initiated.."
         echo ~{skera_id}
-        echo ~{skera_id_prefix}
 
         skera split -j ~{num_threads} ~{hifi_bam} ~{mas_adapters_fasta} ~{skera_id}.skera.bam
         echo "Skera split completed!"
@@ -60,9 +60,9 @@ task pbSkerawQC {
         --arraysize ~{arraysize} \
         --output ~{skera_id}.ligations_heatmap.png
 
-        echo "Copying QC metric and plots to gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}..."
-        gcloud storage -m cp ~{skera_id}*.png gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}/QC_plots
-        gcloud storage -m cp -r -x ".*\.bam$|.*\.bam\.pbi$" ~{skera_id}.skera.* gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}/skera/
+        echo "Copying QC metric and plots to gs://gptag/kinnex_data/QC_metrics/~{pdo}..."
+        gcloud storage -m cp ~{skera_id}*.png gs://gptag/kinnex_data/QC_metrics/~{pdo}/QC_plots
+        gcloud storage -m cp -r -x ".*\.bam$|.*\.bam\.pbi$" ~{skera_id}.skera.* gs://gptag/kinnex_data/QC_metrics/~{pdo}/skera/
         echo "Copying QC metric and plots to gs://gptag/kinnex_data/ completed!"
 
         echo "Copying output to gcs path provided..."
