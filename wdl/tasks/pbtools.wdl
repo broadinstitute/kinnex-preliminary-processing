@@ -38,6 +38,7 @@ task pbSkerawQC {
 
         echo "skera split initiated.."
         echo ~{skera_id}
+        echo ~{skera_id_prefix}
 
         skera split -j ~{num_threads} ~{hifi_bam} ~{mas_adapters_fasta} ~{skera_id}.skera.bam
         echo "Skera split completed!"
@@ -59,9 +60,10 @@ task pbSkerawQC {
         --arraysize ~{arraysize} \
         --output ~{skera_id}.ligations_heatmap.png
 
-        echo "Copying original HiFi bam to gcs path provided..."
-        gsutil -m cp ~{hifi_bam} ~{outdir}skera/
-        echo "Copying original HiFi bam completed!"
+        echo "Copying QC metric and plots to gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}..."
+        gcloud storage -m cp ~{skera_id}*.png gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}/QC_plots
+        gcloud storage -m cp -r -x ".*\.bam$|.*\.bam\.pbi$" ~{skera_id}.skera.* gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}/skera/
+        echo "Copying QC metric and plots to gs://gptag/kinnex_data/ completed!"
 
         echo "Copying output to gcs path provided..."
         gsutil -m cp ~{skera_id}.skera.* ~{outdir}skera/
@@ -71,10 +73,9 @@ task pbSkerawQC {
         gsutil -m cp ~{skera_id}*.png ~{outdir}QC_plots/
         echo "Copying QC plots completed!"
 
-        echo "Copying QC metric and plots to gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}..."
-        gsutil -m cp ~{skera_id}.skera.* -x *.bam -x *.bai gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}/skera/
-        gsutil -m cp ~{skera_id}*.png gs://gptag/kinnex_data/QC_metrics/~{skera_id_prefix}/QC_plots
-        echo "Copying QC metric and plots to gs://gptag/kinnex_data/ completed!"
+        echo "Copying original HiFi bam to gcs path provided..."
+        gcloud storage -m cp ~{hifi_bam} ~{outdir}skera/
+        echo "Copying original HiFi bam completed!"
 
         echo "Copying completed!"
     >>>
