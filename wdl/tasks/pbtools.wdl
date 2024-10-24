@@ -62,7 +62,8 @@ task pbSkerawQC {
 
         echo "Copying QC metric and plots to gs://gptag/kinnex_data/QC_metrics/~{pdo}..."
         gsutil -m cp ~{skera_id}*.png gs://gptag/kinnex_data/QC_metrics/~{pdo}/QC_plots/
-        gsutil rsync -x ".*\.(bam|pbi)$" ~{skera_id}.skera.* gs://gptag/kinnex_data/QC_metrics/~{pdo}/skera/
+        ls | grep ~{skera_id}.skera. | grep -vE ".(bam|pbi)" | xargs -I {} gsutil -m cp {} gs://gptag/kinnex_data/QC_metrics/~{pdo}/skera/
+
         echo "Copying QC metric and plots to gs://gptag/kinnex_data/ completed!"
 
         echo "Copying output to gcs path provided..."
