@@ -61,8 +61,8 @@ task pbSkerawQC {
         --output ~{skera_id}.ligations_heatmap.png
 
         echo "Copying QC metric and plots to gs://gptag/kinnex_data/QC_metrics/~{pdo}..."
-        gcloud storage -m cp ~{skera_id}*.png gs://gptag/kinnex_data/QC_metrics/~{pdo}/QC_plots
-        gcloud storage -m cp -r -x ".*\.bam$|.*\.bam\.pbi$" ~{skera_id}.skera.* gs://gptag/kinnex_data/QC_metrics/~{pdo}/skera/
+        gsutil -m cp ~{skera_id}*.png gs://gptag/kinnex_data/QC_metrics/~{pdo}/QC_plots/
+        gsutil rsync -x ".*\.(bam|pbi)$" ~{skera_id}.skera.* gs://gptag/kinnex_data/QC_metrics/~{pdo}/skera/
         echo "Copying QC metric and plots to gs://gptag/kinnex_data/ completed!"
 
         echo "Copying output to gcs path provided..."
