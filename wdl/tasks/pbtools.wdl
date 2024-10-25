@@ -75,7 +75,7 @@ task pbSkerawQC {
         echo "Copying QC plots completed!"
 
         echo "Copying original HiFi bam to gcs path provided..."
-        gcloud storage -m cp ~{hifi_bam} ~{outdir}skera/
+        gsutil cp ~{hifi_bam} ~{outdir}skera/
         echo "Copying original HiFi bam completed!"
 
         echo "Copying completed!"
