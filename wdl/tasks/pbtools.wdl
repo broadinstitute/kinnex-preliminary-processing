@@ -142,7 +142,7 @@ task pbLimaBulk {
         echo "Running lima demux.."
         ~{lima_cmd} -j ~{num_threads} ~{skera_bam} ~{bulk_barcodes_fasta} ~{skera_id}.lima.bam
         echo "Demuxing completed."
-
+        ls -lhrt
         echo "Copying output to gcs path provided..."
         gsutil -m cp ~{skera_id}*lima* ~{outdir}lima/
         echo "Copying lima files completed!"
