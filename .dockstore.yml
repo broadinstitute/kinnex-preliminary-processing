@@ -16,11 +16,6 @@ workflows:
       - /optional.json
     name: bulk_demux
   - subclass: WDL
-    primaryDescriptorPath: /wdl/masseq_longread_demux.wdl
-    testParameterFiles:
-      - /optional.json
-    name: bulk_longread_demux
-  - subclass: WDL
     primaryDescriptorPath: /wdl/pb_refine_sc_plus_bulk.wdl
     testParameterFiles:
       - /optional.json
