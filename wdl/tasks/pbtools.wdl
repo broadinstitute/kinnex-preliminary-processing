@@ -138,10 +138,22 @@ task LimaLongRead {
         set -euxo pipefail
 
         echo "Running lima demux.."
-        ~{lima_cmd}  -j ~{num_threads} --peek-guess --hifi-preset ASYMMETRIC --dump-removed --ignore-xml-biosamples \
-        --dataset-name ~{dataset_name} --biosample-csv ~{biosample_csv} --split-bam-named --split-subdirs \
-        --output-missing-pairs --guess-file-json lima_guesses_fail.report.json --alarms alarms.json --fail-reads-only \
-        ~{skera_bam} ~{bulk_barcodes_fasta} ~{skera_id}.lima.bam
+        ~{lima_cmd} \
+        -j ~{num_threads} \
+        --peek-guess \
+        --hifi-preset ASYMMETRIC \
+        --dump-removed \
+        --ignore-xml-biosamples \
+        --dataset-name ~{dataset_name} \
+        --biosample-csv ~{biosample_csv} \
+        --split-bam-named \
+        --split-subdirs \
+        --output-missing-pairs \
+        --guess-file-json lima_guesses_fail.report.json \
+        --alarms alarms.json \
+        ~{skera_bam} \
+        ~{bulk_barcodes_fasta} \
+        ~{skera_id}.lima.bam
 
         echo "Demuxing completed."
         ls -lhrt
