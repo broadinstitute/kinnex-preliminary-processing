@@ -100,6 +100,74 @@ task pbSkerawQC {
 
 }
 
+task LimaLongRead {
+    #Inputs required
+    input {
+        # Required:
+        File skera_bam
+        String? sample_id
+        File bulk_barcodes_fasta
+        Int num_threads
+        String gcs_output_dir
+        String dataset_name
+        File biosample_csv
+
+        #File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+
+        # Optional:
+        Int? mem_gb
+        Int? preemptible_attempts
+        Int? disk_space_gb
+        Int? cpu
+        Int? boot_disk_size_gb
+    }
+    # Computing required disk size
+    Float input_files_size_gb = 2.5*(size(skera_bam, "GiB"))
+    Int default_ram = 16
+    Int default_disk_space_gb = ceil((input_files_size_gb * 2) + 1024)
+    Int default_boot_disk_size_gb = 50
+
+    # Mem is in units of GB
+    Int machine_mem = if defined(mem_gb) then mem_gb else default_ram
+    String outdir = sub(sub( gcs_output_dir + "/", "/+", "/"), "gs:/", "gs://")
+
+    String lima_cmd = "lima"
+
+    String skera_id = if defined(sample_id) then sample_id else basename(skera_bam,".skera.bam")
+    command <<<
+        set -euxo pipefail
+
+        echo "Running lima demux.."
+        ~{lima_cmd}  -j ~{num_threads} --peek-guess --hifi-preset ASYMMETRIC --dump-removed --ignore-xml-biosamples \
+        --dataset-name ~{dataset_name} --biosample-csv ~{biosample_csv} --split-bam-named --split-subdirs \
+        --output-missing-pairs --guess-file-json lima_guesses_fail.report.json --alarms alarms.json --fail-reads-only \
+        ~{skera_bam} ~{bulk_barcodes_fasta} ~{skera_id}.lima.bam
+
+        echo "Demuxing completed."
+        ls -lhrt
+        echo "Copying output to gcs path provided..."
+        gsutil -m cp ~{skera_id}*lima* ~{outdir}lima/
+        echo "Copying lima files completed!"
+
+    >>>
+    # ------------------------------------------------
+    # Outputs:
+    output {
+        # Default output file name:
+        String lima_out    = "~{outdir}lima"
+    }
+
+    # ------------------------------------------------
+    # Runtime settings:
+    runtime {
+        docker: "us-east4-docker.pkg.dev/methods-dev-lab/masseq-dataproc/masseq_prod:latest"
+        memory: machine_mem + " GiB"
+        disks: "local-disk " + select_first([disk_space_gb, default_disk_space_gb]) + " HDD"
+        bootDiskSizeGb: select_first([boot_disk_size_gb, default_boot_disk_size_gb])
+        preemptible: select_first([preemptible_attempts, 0])
+        cpu: select_first([cpu, 4])
+    }
+}
 task pbLimaBulk {
     meta {
         description: "Given deconcatenated S-reads for Bulk samples, de-multiplexes using provided primers fasta and trims PolyA tails using Isoseq Refine"
@@ -134,7 +202,7 @@ task pbLimaBulk {
     Int machine_mem = if defined(mem_gb) then mem_gb else default_ram
     String outdir = sub(sub( gcs_output_dir + "/", "/+", "/"), "gs:/", "gs://")
     String isoseq_cmd = if trimPolyA then "isoseq refine --require-polya" else "isoseq refine"
-    String lima_cmd = if clipAdapters then "lima --isoseq --log-level INFO" else "lima --isoseq --no-clip --log-level INFO"
+    String lima_cmd = if clipAdapters then "lima --isoseq --log-level DEBUG" else "lima --isoseq --no-clip --log-level DEBUG"
     String skera_id = if defined(sample_id) then sample_id else basename(skera_bam,".skera.bam")
     command <<<
         set -euxo pipefail
