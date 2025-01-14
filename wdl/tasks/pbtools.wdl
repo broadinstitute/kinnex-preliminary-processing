@@ -134,7 +134,7 @@ task pbLimaBulk {
     Int machine_mem = if defined(mem_gb) then mem_gb else default_ram
     String outdir = sub(sub( gcs_output_dir + "/", "/+", "/"), "gs:/", "gs://")
     String isoseq_cmd = if trimPolyA then "isoseq refine --require-polya" else "isoseq refine"
-    String lima_cmd = if clipAdapters then "lima --isoseq --log-level INFO" else "lima --isoseq --no-clip --log-level INFO"
+    String lima_cmd = if clipAdapters then "lima --isoseq --log-level DEBUG" else "lima --isoseq --no-clip --log-level DEBUG"
     String skera_id = if defined(sample_id) then sample_id else basename(skera_bam,".skera.bam")
     command <<<
         set -euxo pipefail
