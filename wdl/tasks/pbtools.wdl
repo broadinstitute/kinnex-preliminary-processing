@@ -143,7 +143,6 @@ task LimaLongRead {
         --peek-guess \
         --hifi-preset ASYMMETRIC \
         --dump-removed \
-        --ignore-xml-biosamples \
         --dataset-name ~{dataset_name} \
         --biosample-csv ~{biosample_csv} \
         --split-bam-named \
